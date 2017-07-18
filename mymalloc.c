@@ -132,12 +132,12 @@ void myfree(void *ptr){
   if (found == 1) {
     killRegion(&focusedRegion, 0);
   } else {
-    printf("this thing was ")
+    printf("this thing was ");
   }
   
 }
 
-int killRegion(region *dyingRgn, int direction) {
+void killRegion(region *dyingRgn, int direction) {
   
   region *prevRgn = dyingRgn.prev;
   if prevRgn != NULL && (prevRgn.occ == 0) && ((direction == 0) || (direction == -1)) {
@@ -157,7 +157,7 @@ int killRegion(region *dyingRgn, int direction) {
   munmap(&dyingRgn, (dyingRgn.size + sizeof(dyingRgn) + sizeof(size_t)));
 }
 
-int mergeRegions(region *rgn1, region *rgn2) {
+void mergeRegions(region *rgn1, region *rgn2) {
   int sizeToExpandRgn1 = sizeof(size_t) + sizeof(rgn2) + rgn2.size;
   rgn1.size = rgn1.size + sizeToExpandRgn1;
   rgn1.end = rgn2.end;
