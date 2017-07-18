@@ -8,20 +8,38 @@
 
 #include <stddef.h>
 
-typedef struct bloc;
+typedef struct bloc {
 
-typedef struct region;
+	int occ; //si le bloc est occupee occ vaut 1, sinon 0
+	int nxtLinked; // si le bloc est lie a son precedant prevLinked vaut 1, sinon 0
+	void* start;
+	void* end;
+	size_t size;
+	struct bloc* nxt;
+	
+};
+
+typedef struct region {
+
+	int occ; //si le bloc est occupee occ vaut 1, sinon 0
+	void* start;
+	void* end;
+	size_t size;
+	struct region* prev;
+	struct region* nxt;
+	
+};
 
 int roundUp(size_t size);
 
-bloc *lastBloc = NULL;
-bloc *lastRgn = NULL;
+//bloc *lastBloc = NULL;
+//bloc *lastRgn = NULL;
 
-region *startRegion;
+//region *startRegion;
 
 void new_bloc(void* addr);
 
-void new_rgn(size_t size, void* addr)
+void new_rgn(size_t size, void* addr);
 
 void *mymalloc(size_t size);
 

@@ -7,30 +7,10 @@
 #include "mymalloc.h"
 
 
-typedef struct {
 
-  int occ; //si le bloc est occupee occ vaut 1, sinon 0
-  int nxtLinked; // si le bloc est lie a son precedant prevLinked vaut 1, sinon 0
-  void* start;
-  void* end;
-  size_t size;
-  struct bloc* nxt;
-  
-} bloc;
 
-typedef struct {
-
-  int occ; //si le bloc est occupee occ vaut 1, sinon 0
-  void* start;
-  void* end;
-  size_t size;
-  struct region* prev;
-  struct region* next;
-  
-} region;
-
-bloc lastBloc = NULL;
-bloc lastRgn = NULL;
+bloc *lastBloc = NULL;
+bloc *lastRgn = NULL;
 
 //les pages sont compose de 4096 alloue par mmap
 void new_bloc(void* addr) {
@@ -42,10 +22,9 @@ void new_bloc(void* addr) {
   newBloc.start = mmap(addr, 4096, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
   newBloc.end = newBloc.start + 4096;
   newBloc.size = 4096 - (sizeof(size_t) + sizeof(bloc));
-  newBloc.prv = lastBloc;
   newBloc.nxt = NULL;
   if(lastBloc != NULL){
-    lastBloc.nxt = newBloc;
+    lastBloc->nxt = &newBloc;
   }
 
   lastBloc = newBloc;
@@ -63,7 +42,7 @@ void new_rgn(size_t size, void* addr) {
   newRgn.start = addr;
   newRgn.end = addr + size;
   newRgn.size = size - (sizeof(size_t) + sizeof(bloc));
-  newRgn.prv = lastRgn;
+  newRgn.prev = lastRgn;
   newRgn.nxt = NULL;
   if(lastRgn != NULL){
     lastRgn.nxt = newRgn;
@@ -121,8 +100,8 @@ void new_rgn(size_t size, void* addr) {
       rgnToUse = firstRegion.start;
       while ((rgnToUse == NULL) && (rgnToUse.occ == 1) && (rgnToUse.size < sizeRoundUp)){
 
-        region next = rgnToUse.nxt;
-        rgnToUse = next;
+        region nxt = rgnToUse.nxt;
+        rgnToUse = nxt;
 
       }
 
@@ -201,8 +180,8 @@ void new_rgn(size_t size, void* addr) {
       rgnToUse = firstRegion.start;
       while ((rgnToUse.occ == 1) && (rgnToUse.size < sizeRoundUp)){
 
-        region next = rgnToUse.nxt;
-        rgnToUse = next;
+        region nxt = rgnToUse.nxt;
+        rgnToUse = nxt;
 
       }
 
@@ -269,10 +248,10 @@ void freeRegion(region *dyingRgn, int direction) {
   dyingRgn.occ = 0;
   
    // Let's see if we can merge this soon-to-be free region with the one after...
-  region *nextRgn = nextRgn.next
-  if nextRgn != NULL && (prevRgn.occ == 0) && ((direction == 0) || (direction == 1)) {
-    freeRegion(&nextRgn, 1);
-    mergeRegions(&dyingRgn, &nextRgn);
+  region *nxtRgn = nxtRgn.nxt
+  if nxtRgn != NULL && (prevRgn.occ == 0) && ((direction == 0) || (direction == 1)) {
+    freeRegion(&nxtRgn, 1);
+    mergeRegions(&dyingRgn, &nxtRgn);
   }
   
   munmap(&dyingRgn, (dyingRgn.size + sizeof(dyingRgn) + sizeof(size_t)));
@@ -282,9 +261,9 @@ void mergeRegions(region *rgn1, region *rgn2) {
   int sizeToExpandRgn1 = sizeof(size_t) + sizeof(rgn2) + rgn2.size;
   rgn1.size = rgn1.size + sizeToExpandRgn1;
   rgn1.end = rgn2.end;
-  rgn1.next = rgn2.next;
-  region *nextRgn = rgn1.next;
-  nextRgn.prev = &rgn1;
+  rgn1.nxt = rgn2.nxt;
+  region *nxtRgn = rgn1.nxt;
+  nxtRgn.prev = &rgn1;
 }
 
 int roundUp(size_t size) 
