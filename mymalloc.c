@@ -21,11 +21,11 @@ typedef struct {
 typedef struct {
 
   int occ; //si le bloc est occupee occ vaut 1, sinon 0
-  int nxtLinked; // si le bloc est lie a son precedant prevLinked vaut 1, sinon 0
   void* start;
   void* end;
   size_t size;
-  struct bloc* nxt;
+  struct region* prev;
+  struct region* next;
   
 } region;
 
@@ -114,11 +114,41 @@ region *startRegion;
 
 }
 
+bloc *firstBloc;
+
 void myfree(void *ptr){
   
-  startRegion
+  region *focusedRegion = firstBloc.start;
+  int found = 0;
+  
+  while ((found == 0) && (focusedRegion.occ == 1)) {
+    if &focusedRegion == &ptr {
+      found == 1;
+      break;
+    }
+    focusedRegion = focusedRegion.next;
+  }
+  
+  if (found == 1) {
+    killRegion(&focusedRegion);
+  } else {
+    
+  }
   
 }
+
+int killRegion(region *dyingRgn) {
+  
+  region *prevRgn = dyingRgn.prev
+  if prevRgn != NULL {
+    
+  } 
+  
+  dyingRgn.occ = 0;
+  munmap(dyingRgn.start, dyingRgn.size);
+}
+
+int killRegion()
 
 int roundUp(size_t size) 
 {
