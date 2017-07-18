@@ -6,7 +6,7 @@
 #include <signal.h>
 #include <string.h>
 #include <setjmp.h>
-#include "mymalloc2.h"
+#include "mymalloc.h"
 
 //#define mymalloc malloc
 

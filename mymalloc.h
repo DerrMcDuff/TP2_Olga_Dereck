@@ -38,7 +38,7 @@ int roundUp(size_t size);
 
 //region *startRegion;
 
-void new_bloc(void* addr);
+void *new_bloc(void* addr);
 
 void *new_rgn(size_t size, void* addr);
 
