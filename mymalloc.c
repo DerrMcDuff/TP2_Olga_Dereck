@@ -121,7 +121,7 @@ void myfree(void *ptr){
   region *focusedRegion = firstBloc.start;
   int found = 0;
   
-  while ((found == 0) && (focusedRegion.occ == 1) && (focusedRegion != NULL)) {
+  while ((found == 0) && (focusedRegion != NULL)) {
     if &focusedRegion == &ptr {
       found == 1;
       break;
