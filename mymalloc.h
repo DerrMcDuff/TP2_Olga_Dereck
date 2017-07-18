@@ -17,7 +17,7 @@ typedef struct bloc {
 	size_t size;
 	struct bloc* nxt;
 	
-};
+} bloc;
 
 typedef struct region {
 
@@ -28,7 +28,8 @@ typedef struct region {
 	struct region* prev;
 	struct region* nxt;
 	
-};
+} region;
+
 
 int roundUp(size_t size);
 
@@ -39,7 +40,7 @@ int roundUp(size_t size);
 
 void new_bloc(void* addr);
 
-void new_rgn(size_t size, void* addr);
+void *new_rgn(size_t size, void* addr);
 
 void *mymalloc(size_t size);
 

@@ -9,46 +9,52 @@
 
 
 
-bloc *lastBloc = NULL;
-bloc *lastRgn = NULL;
+bloc *lastbloc = NULL;
+region *lastRgn = NULL;
+region *firstRgn = NULL;
 
 //les pages sont compose de 4096 alloue par mmap
 void new_bloc(void* addr) {
 
-  bloc newBloc;
+  bloc * newbloc = mmap(addr, 4096, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
   
-  newBloc.occ = 1;
-  newBloc.nxtLinked = 0;
-  newBloc.start = mmap(addr, 4096, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
-  newBloc.end = newBloc.start + 4096;
-  newBloc.size = 4096 - (sizeof(size_t) + sizeof(bloc));
-  newBloc.nxt = NULL;
-  if(lastBloc != NULL){
-    lastBloc->nxt = &newBloc;
+  newbloc->occ = 1;
+  newbloc->nxtLinked = 0;
+  newbloc->start = &newbloc;
+  newbloc->end = newbloc->start + 4096;
+  newbloc->size = 4096 - (sizeof(size_t) + sizeof(bloc));
+  newbloc->nxt = NULL;
+  if(lastbloc != NULL){
+    lastbloc->nxt = newbloc;
   }
 
-  lastBloc = newBloc;
+  lastbloc = newbloc;
 
 }
 
 
 
 //chaque page va contenir plusieurs blocs
-void new_rgn(size_t size, void* addr) {
-
-  bloc newRgn ;
-
-  newRgn.occ = 1;
-  newRgn.start = addr;
-  newRgn.end = addr + size;
-  newRgn.size = size - (sizeof(size_t) + sizeof(bloc));
-  newRgn.prev = lastRgn;
-  newRgn.nxt = NULL;
+void * new_rgn(size_t size, void* addr) {
+  
+  if (firstRgn == NULL) {
+    firstRgn = addr;
+  }
+  
+  region *newRgn = addr;
+  
+  newRgn->occ = 1;
+  newRgn->start = addr;
+  newRgn->end = addr + size;
+  newRgn->size = size - (sizeof(size_t) + sizeof(region));
+  newRgn->prev = lastRgn;
+  newRgn->nxt = NULL;
   if(lastRgn != NULL){
-    lastRgn.nxt = newRgn;
+    lastRgn->nxt = newRgn;
   }
   
   lastRgn = newRgn;
+  return newRgn;
 }
 
 
@@ -60,61 +66,62 @@ void new_rgn(size_t size, void* addr) {
     int sizeRoundUp = roundUp(size + sizeof(size_t) + sizeof(bloc));
 
     //Si aucun bloc n'a encore ete initialisee, on en cree un
-    if(lastBloc == NULL) {
+    if(lastbloc == NULL) {
 
       new_bloc(NULL);
-      new_rgn(sizeRoundUp + sizeof(region), lastBloc.start);
+      new_rgn(sizeRoundUp + sizeof(region), lastbloc->start);
 
     }
 
     //Si la taille demandee est plus grande que 4ko, on va devoir allouer plusieurs blocs
     if (size > 4096) {
       
-      printf("Warning: Memory requested is high")
+      printf("Warning: Memory requested is high");
       
       int nbB = ceil(size/4096);
 
       // creation du prochain bloc, s'il n'est pas encore cree
-      if(lastBloc != NULL){
-        new_bloc(lastBloc.end);
+      if(lastbloc != NULL){
+        new_bloc(lastbloc->end);
       }
 
-      // creation de la region avec l'addresse du debut de la premiere page, et la taille donnee
-      rgnToUse = new_rgn(sizeRoundUp, lastBloc.start);
+      // creation de la region avec l'addresse du debut de la premiere page, et la taille donnee 
+      rgnToUse = new_rgn(sizeRoundUp, lastbloc->start);
+      
 
       for(int i = 1; i<nbB; i++){
-        new_bloc(lastBloc.end);
-        lastBloc.nxtLinked = 1;
+        new_bloc(lastbloc->end);
+        lastbloc->nxtLinked = 1;
       }
 
 
       //Si il reste de la place dans le dernier bloc, on prends cet espace et on fait de lui
       //une region qui n'est pas occupee (occ=0)
-      if(lastRgn.size != 0){
-        createLastReg(rgnToUse, (lastBloc.size - rgnToUse.size));
+      if(lastRgn->size != 0){
+        createLastReg(rgnToUse, (lastbloc->size - rgnToUse->size));
       }
 
     } else {
       //Sinon on va parcourir les regions une par une afin de voir si
       //une d'entre elles est libre et a assez d'espace pour pouvoir etre retournee
-      rgnToUse = firstRegion.start;
-      while ((rgnToUse == NULL) && (rgnToUse.occ == 1) && (rgnToUse.size < sizeRoundUp)){
+      rgnToUse = firstRgn->start;
+      while ((rgnToUse == NULL) && (rgnToUse->occ == 1) && (rgnToUse->size < sizeRoundUp)){
 
-        region nxt = rgnToUse.nxt;
+        region *nxt = rgnToUse->nxt;
         rgnToUse = nxt;
 
       }
 
-      if (lastRgn.size < sizeRoundUp) {
+      if (lastRgn->size < sizeRoundUp) {
 
-        new_bloc(lastBloc.end);
-        rgnToUse = new_rgn(size, lastBloc.start);
-        createLastReg(rgnToUse, (lastBloc.size - rgnToUse.size) );
+        new_bloc(lastbloc.end);
+        rgnToUse = new_rgn(size, lastbloc.start);
+        createLastReg(rgnToUse, (lastbloc.size - rgnToUse.size) );
 
       } else {
 
         rgnToUse = new_rgn(size, lastRgn.start);
-        createLastReg(rgnToUse, (lastBloc.size - rgnToUse.size) );
+        createLastReg(rgnToUse, (lastbloc.size - rgnToUse.size) );
       }
 
 
@@ -140,11 +147,11 @@ void new_rgn(size_t size, void* addr) {
     int sizeRoundUp = roundUp(size + sizeof(size_t) + sizeof(bloc));
 
     //Si aucun bloc n'a encore ete initialisee, on en cree un
-    if(lastBloc == NULL) {
+    if(lastbloc == NULL) {
 
       new_bloc(NULL);
-      new_rgn(sizeRoundUp + sizeof(rgn), lastBloc.start);
-
+      new_rgn(sizeRoundUp + sizeof(rgn), lastbloc.start);
+      
     }
 
     //Si la taille demandee est plus grande que 4ko, on va devoir allouer plusieurs blocs
@@ -153,31 +160,31 @@ void new_rgn(size_t size, void* addr) {
       int nbB = ceil(size/4096);
 
       //creation du prochain bloc, s'il n'est pas encore cree
-      if(lastBloc != NULL){
-        new_bloc(lastBloc.end);
+      if(lastbloc != NULL){
+        new_bloc(lastbloc.end);
       }
 
       // creation de la region avec l'addresse du debut de la premiere page, et la taille donnee
-      rgnToUse = new_rgn(sizeRoundUp, lastBloc.start);
+      rgnToUse = new_rgn(sizeRoundUp, lastbloc.start);
 
       for(int i = 1; i<nbB; i++){
-        new_bloc(lastBloc.end);
-        lastBloc.nxtLinked = 1;
+        new_bloc(lastbloc.end);
+        lastbloc.nxtLinked = 1;
       }
 
 
       //Si il reste de la place dans le dernier bloc, on prends cet espace et on fait de lui
       //une region qui n'est pas occupee (occ=0)
       if(lastRgn.size != 0){
-        new_rgn((lastBloc.size - lastRgn.size), lastRgn.nxt);
-        createLastReg(rgnToUse, (lastBloc.size - rgnToUse.size) );
+        new_rgn((lastbloc.size - lastRgn.size), lastRgn.nxt);
+        createLastReg(rgnToUse, (lastbloc.size - rgnToUse.size) );
       }
 
 
     } else{
       //Sinon on va parcourir les regions une par une afin de voir si
       //une d'entre elles est libre et a assez d'espace pour pouvoir etre retournee
-      rgnToUse = firstRegion.start;
+      rgnToUse = firstregion.start;
       while ((rgnToUse.occ == 1) && (rgnToUse.size < sizeRoundUp)){
 
         region nxt = rgnToUse.nxt;
@@ -187,14 +194,14 @@ void new_rgn(size_t size, void* addr) {
 
       if (lastRgn.size < sizeRoundUp) {
 
-        new_bloc(lastBloc.end);
-        rgnToUse = new_rgn(size, lastBloc.start);
-        createLastReg(rgnToUse, (lastBloc.size - rgnToUse.size) );
+        new_bloc(lastbloc.end);
+        rgnToUse = new_rgn(size, lastbloc.start);
+        createLastReg(rgnToUse, (lastbloc.size - rgnToUse.size) );
 
       } else {
 
         rgnToUse = new_rgn(size, lastRgn.start);
-        createLastReg(rgnToUse, (lastBloc.size - rgnToUse.size) );
+        createLastReg(rgnToUse, (lastbloc.size - rgnToUse.size) );
       }
 
 
@@ -221,12 +228,12 @@ void new_rgn(size_t size, void* addr) {
 void myfree(void *ptr) {
   
   // Make a region pointer out of the void pointer! 
-  region *focusedRegion = ptr;
+  region *focusedregion = ptr;
   
-  if ((focusedRegion != NULL) && (focusedRegion.occ == 1)) {
-    // Region to free found
-    freeRegion(&focusedRegion, 0);
-  } else if ((focusedRegion != NULL) && (focusedRegion.occ == 0)) {
+  if ((focusedregion != NULL) && (focusedregion.occ == 1)) {
+    // region to free found
+    freeregion(&focusedregion, 0);
+  } else if ((focusedregion != NULL) && (focusedregion.occ == 0)) {
     // Turns out the memory is already freed! Good on you! 
     printf("Already freed");
   } else {
@@ -236,13 +243,13 @@ void myfree(void *ptr) {
   
 }
 
-void freeRegion(region *dyingRgn, int direction) {
+void freeregion(region *dyingRgn, int direction) {
   
   // Let's see if we can merge this soon-to-be free region with the one before...
   region *prevRgn = dyingRgn.prev;
   if prevRgn != NULL && (prevRgn.occ == 0) && ((direction == 0) || (direction == -1)) {
-    freeRegion(&prevRgn, -1);
-    mergeRegions(&prevRgn, &dyingRgn);
+    freeregion(&prevRgn, -1);
+    mergeregions(&prevRgn, &dyingRgn);
   }
   
   dyingRgn.occ = 0;
@@ -250,14 +257,14 @@ void freeRegion(region *dyingRgn, int direction) {
    // Let's see if we can merge this soon-to-be free region with the one after...
   region *nxtRgn = nxtRgn.nxt
   if nxtRgn != NULL && (prevRgn.occ == 0) && ((direction == 0) || (direction == 1)) {
-    freeRegion(&nxtRgn, 1);
-    mergeRegions(&dyingRgn, &nxtRgn);
+    freeregion(&nxtRgn, 1);
+    mergeregions(&dyingRgn, &nxtRgn);
   }
   
   munmap(&dyingRgn, (dyingRgn.size + sizeof(dyingRgn) + sizeof(size_t)));
 }
 
-void mergeRegions(region *rgn1, region *rgn2) {
+void mergeregions(region *rgn1, region *rgn2) {
   int sizeToExpandRgn1 = sizeof(size_t) + sizeof(rgn2) + rgn2.size;
   rgn1.size = rgn1.size + sizeToExpandRgn1;
   rgn1.end = rgn2.end;
