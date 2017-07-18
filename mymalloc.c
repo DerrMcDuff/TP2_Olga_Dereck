@@ -120,3 +120,14 @@ void myfree(void *ptr){
   
 }
 
+int roundUp(size_t size) 
+{
+  int piece = 4;
+  int amountOff = size%piece;
+  if (amountOff == 0) {
+    return size;
+  } else {
+    return size + (piece - amountOff);
+  }
+}
+

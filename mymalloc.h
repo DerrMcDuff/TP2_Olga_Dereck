@@ -12,6 +12,8 @@ struct bloc;
 
 struct region;
 
+int roundUp(size_t size)
+
 region *startRegion;
 
 void new_bloc;
