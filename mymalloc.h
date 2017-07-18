@@ -8,20 +8,30 @@
 
 #include <stddef.h>
 
-struct bloc;
+typedef struct bloc;
 
-struct region;
+typedef struct region;
 
-int roundUp(size_t size)
+int roundUp(size_t size);
+
+bloc *lastBloc = NULL;
+bloc *lastRgn = NULL;
 
 region *startRegion;
 
-void new_bloc;
+void new_bloc(void* addr);
 
-void new_rgn;
+void new_rgn(size_t size, void* addr)
 
 void *mymalloc(size_t size);
 
+region *createLastReg(region *reg, int size);
+
 void myfree(void *ptr);
+
+void freeRegion(region *dyingRgn, int direction);
+
+void mergeRegions(region *rgn1, region *rgn2);
+
 
 #endif // MYMALLOC_H_
