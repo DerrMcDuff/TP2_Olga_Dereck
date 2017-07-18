@@ -146,8 +146,6 @@ void killRegion(region *dyingRgn, int direction) {
   }
   
   dyingRgn.occ = 0;
-  munmap(dyingRgn.start, dyingRgn.size);
-  
   
   region *nextRgn = nextRgn.next
   if nextRgn != NULL && (prevRgn.occ == 0) && ((direction == 0) || (direction == 1)) {
